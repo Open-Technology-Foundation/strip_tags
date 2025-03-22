@@ -89,4 +89,4 @@ strip_tags myfile.html | grep "important text" > matches.txt
 
 ## License
 
-MIT
+GPL-3
