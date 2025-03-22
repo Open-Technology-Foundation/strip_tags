@@ -1,0 +1,20 @@
+#!/bin/bash
+#shellcheck disable=SC2155,SC1091
+set -euo pipefail
+
+declare PRG0=$(readlink -fn -- "$0")
+declare PRGDIR=$(dirname "$PRG0")
+declare PRG=$(basename "$PRG0")
+
+# Create and activate virtual environment if it doesn't exist
+if [ ! -d "$PRGDIR/.venv" ]; then
+  echo "Setting up virtual environment..."
+  python3 -m venv "$PRGDIR/.venv"
+  source "$PRGDIR/.venv/bin/activate"
+  pip install -r "$PRGDIR/requirements.txt"
+else
+  source "$PRGDIR/.venv/bin/activate"
+fi
+
+# Run the Python script with all arguments passed through
+"$PRGDIR"/"$PRG".py "$@"
