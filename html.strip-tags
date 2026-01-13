@@ -23,6 +23,8 @@ error() { printf '%s: %s\n' "$SCRIPT_NAME" "$*" >&2; }
 
 die() { (($# < 2)) || error "${@:2}"; exit "${1:-0}"; }
 
+noarg() { (($# > 1)) || die 2 "Option ${1@Q} requires an argument"; }
+
 #-----------------------------------------------------------
 # Helper functions
 #-----------------------------------------------------------
@@ -139,8 +141,8 @@ parse_args() {
   while (($#)); do
     case $1 in
       -a|--allow)
+        noarg "$@"
         shift
-        (($#)) || die 22 'Option -a/--allow requires an argument'
         parse_allowed_tags "$1"
         ;;
       --no-squeeze)
