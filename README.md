@@ -8,22 +8,32 @@ A simple, powerful utility to strip HTML tags from files or standard input.
 - Selectively allow specific tags with `--allow` option
 - Intelligent whitespace handling with automatic "squeezing" of empty lines
 - Process files or piped input from stdin
-- Outputs plain text to stdout for easy piping to other commands
+- Auto-managed Python virtual environment
+- Bash tab completion for options and HTML tags
 
 ## Installation
 
-Clone this repository and make sure you have Python 3.6+ installed:
+Clone this repository (requires Python 3.10+):
 
 ```bash
-git clone https://github.com/yourusername/strip_tags.git
+git clone https://github.com/Open-Technology-Foundation/strip_tags.git
 cd strip_tags
-pip install -r requirements.txt
 ```
 
-For easier use, you can symlink the `strip_tags` script to your path:
+The wrapper script automatically creates a virtual environment and installs dependencies on first run.
+
+For system-wide access, symlink to your path:
 
 ```bash
 sudo ln -s "$(pwd)/strip_tags" /usr/local/bin/
+```
+
+### Bash Completion
+
+To enable tab completion, add to your `~/.bashrc`:
+
+```bash
+source /path/to/strip_tags/.bash_completion
 ```
 
 ## Usage
@@ -41,19 +51,6 @@ options:
   -a, --allow ALLOW    Comma-separated list of allowed tags
   --no-squeeze         Disable squeezing of repeated empty lines
   -v, --version        show program's version and exit
-
-Examples:
-  # Read from a file and allow <a>, <p>, and <div> tags
-  strip_tags input.html --allow a,p,div
-
-  # Read from stdin and allow <a> and <p> tags
-  cat input.html | strip_tags -a a,p
-
-  # Read from a file and strip all tags
-  strip_tags input.html
-
-  # Read from a file, strip all tags, and disable squeezing
-  strip_tags input.html --no-squeeze
 ```
 
 ## Examples
@@ -61,30 +58,53 @@ Examples:
 ### Basic usage (strip all tags)
 
 ```bash
-strip_tags myfile.html > cleaned.txt
+echo "<p>Hello <b>world</b></p>" | strip_tags
+# Output: Hello world
 ```
 
 ### Preserve specific tags
 
 ```bash
-strip_tags myfile.html --allow a,p,div > cleaned.txt
+echo "<p>Hello <b>world</b></p>" | strip_tags -a b
+# Output: Hello <b>world</b>
+```
+
+### Process a file
+
+```bash
+strip_tags myfile.html > cleaned.txt
+```
+
+### Preserve multiple tags (spaces allowed)
+
+```bash
+strip_tags myfile.html --allow "a, p, div" > cleaned.txt
 ```
 
 ### Process piped input
 
 ```bash
-curl -s https://example.com | strip_tags --allow h1,h2,p > example.txt
+curl -s https://example.com | strip_tags --allow h1,h2,p
 ```
 
-### Combined with other commands
+### Disable whitespace squeezing
 
 ```bash
-strip_tags myfile.html | grep "important text" > matches.txt
+strip_tags myfile.html --no-squeeze
+```
+
+## Testing
+
+Run the test suite:
+
+```bash
+source .venv/bin/activate
+pytest test_strip_tags.py -v
 ```
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.10+
 - BeautifulSoup4
 
 ## License
