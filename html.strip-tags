@@ -1,106 +1,72 @@
-#!/bin/bash
-#: html.strip-tags - Strip HTML tags from files or stdin (pure Bash)
-#:
-#: A pure Bash alternative to the Python strip_tags utility.
-#: Use when Python is not available on target systems.
-#
-# shellcheck disable=SC2155
+#!/usr/bin/env bash
+# html.strip-tags - Strip HTML tags from files or stdin (pure Bash)
+# A pure Bash alternative to the Python strip_tags utility.
+# Use when Python is not available on target systems.
 set -euo pipefail
-shopt -s inherit_errexit
+shopt -s inherit_errexit shift_verbose extglob nullglob
 
-declare -r VERSION='1.0.0'
-declare -r PRG0=$(readlink -fn -- "$0")
-declare -r PRG=${PRG0##*/}
+declare -r VERSION=1.0.0
+#shellcheck disable=SC2155
+declare -r SCRIPT_PATH=$(realpath -- "$0")
+declare -r SCRIPT_NAME=${SCRIPT_PATH##*/}
 
 # Global state
 declare -a ALLOWED_TAGS=()
 declare -i SQUEEZE=1
 declare -- INPUT_FILE=''
 
-main() {
-  parse_args "$@"
+#-----------------------------------------------------------
+# Utility functions
+#-----------------------------------------------------------
 
-  local content
-  content=$(read_input)
-  content=$(strip_tags "$content")
-  ((SQUEEZE)) && content=$(squeeze_text "$content")
+error() { printf '%s: %s\n' "$SCRIPT_NAME" "$*" >&2; }
 
-  printf '%s\n' "$content"
-}
+die() { (($# < 2)) || error "${@:2}"; exit "${1:-0}"; }
 
-parse_args() {
-  while (($#)); do
-    case $1 in
-      -a|--allow)
-        shift
-        [[ $# -gt 0 ]] || die "Option -a/--allow requires an argument"
-        parse_allowed_tags "$1"
-        ;;
-      --no-squeeze)
-        SQUEEZE=0
-        ;;
-      -v|--version)
-        echo "$PRG $VERSION"
-        exit 0
-        ;;
-      -h|--help)
-        usage
-        exit 0
-        ;;
-      --)
-        shift
-        [[ $# -gt 0 ]] && INPUT_FILE=$1
-        break
-        ;;
-      -*)
-        die "Unknown option: $1"
-        ;;
-      *)
-        INPUT_FILE=$1
-        ;;
-    esac
-    shift
+#-----------------------------------------------------------
+# Helper functions
+#-----------------------------------------------------------
+
+is_allowed() {
+  local -- tag=$1
+  local -- allowed
+  for allowed in "${ALLOWED_TAGS[@]}"; do
+    #shellcheck disable=SC2015
+    [[ $tag == "$allowed" ]] && return 0 ||:
   done
+  return 1
 }
 
 parse_allowed_tags() {
-  local IFS=','
-  local -a tags
+  local -- IFS=','
+  local -a tags=()
   read -ra tags <<< "$1"
-  local tag
+  local -- tag
   for tag in "${tags[@]}"; do
     # Trim whitespace and lowercase
     tag="${tag#"${tag%%[![:space:]]*}"}"
     tag="${tag%"${tag##*[![:space:]]}"}"
-    [[ -n $tag ]] && ALLOWED_TAGS+=("${tag,,}")
+    [[ -z $tag ]] || ALLOWED_TAGS+=("${tag,,}")
   done
 }
 
 read_input() {
   if [[ -n $INPUT_FILE ]]; then
-    [[ -f $INPUT_FILE ]] || die "File '$INPUT_FILE' not found"
-    [[ -r $INPUT_FILE ]] || die "Cannot read '$INPUT_FILE'"
+    [[ -f $INPUT_FILE ]] || die 1 "File ${INPUT_FILE@Q} not found"
+    [[ -r $INPUT_FILE ]] || die 1 "Cannot read ${INPUT_FILE@Q}"
     cat -- "$INPUT_FILE"
   else
     cat
   fi
 }
 
-strip_tags() {
-  local content=$1
-
-  if ((${#ALLOWED_TAGS[@]} == 0)); then
-    # Simple case: remove all tags
-    printf '%s' "$content" | sed 's/<[^>]*>//g'
-  else
-    # Complex case: preserve allowed tags
-    strip_tags_selective "$content"
-  fi
-}
+#-----------------------------------------------------------
+# Core business logic
+#-----------------------------------------------------------
 
 strip_tags_selective() {
-  local content=$1
-  local line tag_name
+  local -- content=$1
+  local -- line tag_name
 
   # Normalize: put tags on separate lines for processing
   content=$(printf '%s' "$content" | sed -e 's/</\n</g' -e 's/>/>\n/g')
@@ -117,26 +83,33 @@ strip_tags_selective() {
   done <<< "$content"
 }
 
-is_allowed() {
-  local tag=$1
-  local allowed
-  for allowed in "${ALLOWED_TAGS[@]}"; do
-    [[ $tag == "$allowed" ]] && return 0
-  done
-  return 1
+strip_tags() {
+  local -- content=$1
+
+  if ((${#ALLOWED_TAGS[@]} == 0)); then
+    # Simple case: remove all tags
+    printf '%s' "$content" | sed 's/<[^>]*>//g'
+  else
+    # Complex case: preserve allowed tags
+    strip_tags_selective "$content"
+  fi
 }
 
 squeeze_text() {
-  local text=$1
+  local -- text=$1
   # Collapse 3+ consecutive newlines to 2, then strip leading/trailing whitespace
   printf '%s' "$text" |
     sed -e ':a' -e 'N' -e '$!ba' -e 's/\n\{3,\}/\n\n/g' |
     sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
-usage() {
+#-----------------------------------------------------------
+# Interface functions
+#-----------------------------------------------------------
+
+show_help() {
   cat <<EOF
-Usage: $PRG [OPTIONS] [FILE]
+Usage: $SCRIPT_NAME [OPTIONS] [FILE]
 
 Strip HTML tags from a file or stdin.
 
@@ -150,10 +123,10 @@ Options:
   -h, --help         Show this help and exit
 
 Examples:
-  echo "<p>Hello</p>" | $PRG
-  $PRG input.html --allow a,p,div
-  $PRG input.html --no-squeeze
-  curl -s https://example.com | $PRG -a h1,p
+  echo "<p>Hello</p>" | $SCRIPT_NAME
+  $SCRIPT_NAME input.html --allow a,p,div
+  $SCRIPT_NAME input.html --no-squeeze
+  curl -s https://example.com | $SCRIPT_NAME -a h1,p
 
 Notes:
   - HTML entities (e.g., &amp;) are preserved as-is
@@ -162,9 +135,55 @@ Notes:
 EOF
 }
 
-die() {
-  printf '%s: %s\n' "$PRG" "$1" >&2
-  exit 1
+parse_args() {
+  while (($#)); do
+    case $1 in
+      -a|--allow)
+        shift
+        (($#)) || die 22 'Option -a/--allow requires an argument'
+        parse_allowed_tags "$1"
+        ;;
+      --no-squeeze)
+        SQUEEZE=0
+        ;;
+      -v|--version)
+        echo "$SCRIPT_NAME $VERSION"
+        exit 0
+        ;;
+      -h|--help)
+        show_help
+        exit 0
+        ;;
+      --)
+        shift
+        INPUT_FILE=${1:-}
+        break
+        ;;
+      -*)
+        die 22 "Unknown option ${1@Q}"
+        ;;
+      *)
+        INPUT_FILE=$1
+        ;;
+    esac
+    shift
+  done
+}
+
+#-----------------------------------------------------------
+# Main orchestration
+#-----------------------------------------------------------
+
+main() {
+  parse_args "$@"
+
+  local -- content
+  content=$(read_input)
+  content=$(strip_tags "$content")
+  ((SQUEEZE==0)) || content=$(squeeze_text "$content")
+
+  printf '%s\n' "$content"
 }
 
 main "$@"
+#fin
