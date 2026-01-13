@@ -2,35 +2,30 @@
 # Bash completion for strip_tags
 
 _strip_tags() {
-  local cur prev opts
+  local cur prev opts tags
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-
-  # Available options
   opts="-a --allow --no-squeeze -v --version -h --help"
 
   case "${prev}" in
     -a|--allow)
-      # Complete with common HTML tags
-      local tags="a abbr address area article aside audio b base bdi bdo blockquote body br button canvas caption cite code col colgroup data datalist dd del details dfn dialog div dl dt em embed fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 head header hr html i iframe img input ins kbd label legend li link main map mark meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp script section select small source span strong style sub summary sup svg table tbody td template textarea tfoot th thead time title tr track u ul var video wbr"
-      COMPREPLY=( $(compgen -W "${tags}" -- ${cur}) )
+      tags="a abbr address area article aside audio b base bdi bdo blockquote body br button canvas caption cite code col colgroup data datalist dd del details dfn dialog div dl dt em embed fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 head header hr html i iframe img input ins kbd label legend li link main map mark meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp script section select small source span strong style sub summary sup svg table tbody td template textarea tfoot th thead time title tr track u ul var video wbr"
+      mapfile -t COMPREPLY < <(compgen -W "${tags}" -- "${cur}")
       return 0
       ;;
   esac
 
   if [[ ${cur} == -* ]]; then
-    # Complete with options
-    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    mapfile -t COMPREPLY < <(compgen -W "${opts}" -- "${cur}")
     return 0
-  else
-    # Complete with filenames (HTML files preferred)
-    COMPREPLY=( $(compgen -f -X '!*.@(html|htm|xhtml)' -- ${cur}) $(compgen -d -- ${cur}) )
-    # If no HTML files found, complete with all files
-    if [ ${#COMPREPLY[@]} -eq 0 ]; then
-      COMPREPLY=( $(compgen -f -- ${cur}) )
-    fi
-    return 0
+  fi
+
+  # Complete with HTML files first, then directories
+  mapfile -t COMPREPLY < <(compgen -f -X '!*.@(html|htm|xhtml)' -- "${cur}")
+  mapfile -t -O "${#COMPREPLY[@]}" COMPREPLY < <(compgen -d -- "${cur}")
+  if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
+    mapfile -t COMPREPLY < <(compgen -f -- "${cur}")
   fi
 }
 
