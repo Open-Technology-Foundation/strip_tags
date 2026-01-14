@@ -35,33 +35,24 @@ curl -s https://example.com | strip_tags -a h1,p
 
 ## Installation
 
-```bash
-git clone https://github.com/Open-Technology-Foundation/strip_tags.git
-cd strip_tags
-```
-
 ### Requirements
 
 - **Python version**: Python 3.10+ and BeautifulSoup4
 - **Bash version**: Bash 5.2+ and GNU sed (no other dependencies)
 
-### User Install (Recommended)
-
-Installs to `~/.local/`:
+### User Install
 
 ```bash
-make install
-make install-venv    # Optional: pre-build Python venv
+git clone https://github.com/Open-Technology-Foundation/strip_tags.git && cd strip_tags && make install
 ```
 
 ### System Install
 
-Installs to `/usr/local/`:
-
 ```bash
-sudo make install PREFIX=/usr/local
-sudo make install-venv PREFIX=/usr/local
+git clone https://github.com/Open-Technology-Foundation/strip_tags.git && cd strip_tags && sudo make install PREFIX=/usr/local
 ```
+
+Optional: pre-build Python venv with `make install-venv`
 
 ### Development (Symlink Only)
 
