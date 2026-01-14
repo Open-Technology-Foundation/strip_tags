@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Comprehensive test suite for strip_tags utility."""
+"""Comprehensive test suite for Python strip_tags utility."""
 import os
 import stat
-import subprocess
 import sys
 from io import StringIO
 from pathlib import Path
@@ -10,6 +9,8 @@ from unittest.mock import patch
 
 import pytest
 
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from strip_tags import strip_tags, squeeze_text, read_input
 
 
@@ -59,7 +60,6 @@ class TestStripTags:
 
   def test_allowed_tags_case_insensitive(self):
     """Allowed tags match case-insensitively."""
-    # BeautifulSoup normalizes to lowercase
     result = strip_tags('<P>Text</P>', {'p'})
     assert '<p>' in result.lower()
 
@@ -77,14 +77,12 @@ class TestStripTags:
 
   def test_html_entities_preserved(self):
     """HTML entities are preserved through processing."""
-    # html.parser preserves entities (re-encodes special chars for safety)
     result = strip_tags('<p>&amp; &lt; &gt;</p>')
     assert '&amp;' in result or '&' in result
     assert '&lt;' in result or '<' in result
 
   def test_doctype_preserved(self):
     """DOCTYPE declaration is preserved by html.parser."""
-    # html.parser preserves DOCTYPE - this is expected behavior
     result = strip_tags('<!DOCTYPE html><p>X</p>')
     assert 'X' in result
 
@@ -111,7 +109,6 @@ class TestStripTags:
 
   def test_html_comments_preserved(self):
     """HTML comments are preserved by html.parser."""
-    # html.parser preserves comments - this is expected behavior
     result = strip_tags('Before<!-- comment -->After')
     assert 'Before' in result and 'After' in result
 
@@ -249,45 +246,26 @@ class TestReadInput:
     assert len(result) > 1024 * 1024
 
 
-class TestCLI:
-  """Integration tests for CLI using subprocess."""
+class TestPythonCLI:
+  """Integration tests for Python CLI using subprocess."""
 
-  @pytest.fixture
-  def script_path(self):
-    """Return path to the strip_tags script."""
-    return Path(__file__).parent / 'strip_tags.py'
-
-  def run_script(self, script_path, args=None, stdin_data=None):
-    """Helper to run the script and return result."""
-    cmd = [sys.executable, str(script_path)]
-    if args:
-      cmd.extend(args)
-    result = subprocess.run(
-      cmd,
-      input=stdin_data,
-      capture_output=True,
-      text=True
-    )
-    return result
-
-  def test_stdin_basic(self, script_path):
+  def test_stdin_basic(self, run_python):
     """Basic stdin processing."""
-    result = self.run_script(script_path, stdin_data='<p>Hello</p>')
+    result = run_python(stdin_data='<p>Hello</p>')
     assert result.returncode == 0
     assert 'Hello' in result.stdout
 
-  def test_file_argument(self, script_path, tmp_path):
+  def test_file_argument(self, run_python, tmp_path):
     """Processing a file argument."""
     test_file = tmp_path / 'test.html'
     test_file.write_text('<div>Content</div>', encoding='utf-8')
-    result = self.run_script(script_path, [str(test_file)])
+    result = run_python([str(test_file)])
     assert result.returncode == 0
     assert 'Content' in result.stdout
 
-  def test_allow_flag_short(self, script_path):
+  def test_allow_flag_short(self, run_python):
     """Short -a flag preserves specified tags."""
-    result = self.run_script(
-      script_path,
+    result = run_python(
       ['-a', 'b'],
       stdin_data='<p><b>Bold</b></p>'
     )
@@ -295,10 +273,9 @@ class TestCLI:
     assert '<b>' in result.stdout
     assert '<p>' not in result.stdout
 
-  def test_allow_flag_long(self, script_path):
+  def test_allow_flag_long(self, run_python):
     """Long --allow flag preserves specified tags."""
-    result = self.run_script(
-      script_path,
+    result = run_python(
       ['--allow', 'p,div'],
       stdin_data='<div><p>Text</p></div>'
     )
@@ -306,10 +283,9 @@ class TestCLI:
     assert '<div>' in result.stdout
     assert '<p>' in result.stdout
 
-  def test_allow_with_spaces(self, script_path):
+  def test_allow_with_spaces(self, run_python):
     """Allow flag with spaces around tags."""
-    result = self.run_script(
-      script_path,
+    result = run_python(
       ['-a', 'b, i, p'],
       stdin_data='<div><b>B</b><i>I</i><p>P</p></div>'
     )
@@ -319,61 +295,54 @@ class TestCLI:
     assert '<p>' in result.stdout
     assert '<div>' not in result.stdout
 
-  def test_no_squeeze_flag(self, script_path):
+  def test_no_squeeze_flag(self, run_python):
     """--no-squeeze preserves multiple newlines."""
-    result = self.run_script(
-      script_path,
+    result = run_python(
       ['--no-squeeze'],
       stdin_data='A\n\n\n\nB'
     )
     assert result.returncode == 0
-    # Count newlines - should be more than 2
     assert result.stdout.count('\n') >= 4
 
-  def test_squeeze_default(self, script_path):
+  def test_squeeze_default(self, run_python):
     """Default behavior squeezes newlines."""
-    result = self.run_script(
-      script_path,
-      stdin_data='A\n\n\n\n\nB'
-    )
+    result = run_python(stdin_data='A\n\n\n\n\nB')
     assert result.returncode == 0
-    # Should have at most 2 consecutive newlines
     assert '\n\n\n' not in result.stdout
 
-  def test_version_flag_short(self, script_path):
+  def test_version_flag_short(self, run_python):
     """Short -v flag shows version."""
-    result = self.run_script(script_path, ['-v'])
+    result = run_python(['-v'])
     assert 'strip_tags' in result.stdout or 'strip_tags' in result.stderr
     assert '1.0.0' in result.stdout or '1.0.0' in result.stderr
 
-  def test_version_flag_long(self, script_path):
+  def test_version_flag_long(self, run_python):
     """Long --version flag shows version."""
-    result = self.run_script(script_path, ['--version'])
+    result = run_python(['--version'])
     assert '1.0.0' in result.stdout or '1.0.0' in result.stderr
 
-  def test_help_flag_short(self, script_path):
+  def test_help_flag_short(self, run_python):
     """Short -h flag shows help."""
-    result = self.run_script(script_path, ['-h'])
+    result = run_python(['-h'])
     assert result.returncode == 0
     assert 'usage' in result.stdout.lower()
 
-  def test_help_flag_long(self, script_path):
+  def test_help_flag_long(self, run_python):
     """Long --help flag shows help."""
-    result = self.run_script(script_path, ['--help'])
+    result = run_python(['--help'])
     assert result.returncode == 0
     assert 'usage' in result.stdout.lower()
     assert '--allow' in result.stdout
 
-  def test_missing_file(self, script_path):
+  def test_missing_file(self, run_python):
     """Non-existent file returns error."""
-    result = self.run_script(script_path, ['/nonexistent/file.html'])
+    result = run_python(['/nonexistent/file.html'])
     assert result.returncode == 1
     assert 'not found' in result.stderr.lower()
 
-  def test_combined_flags(self, script_path):
+  def test_combined_flags(self, run_python):
     """Multiple flags work together."""
-    result = self.run_script(
-      script_path,
+    result = run_python(
       ['-a', 'b', '--no-squeeze'],
       stdin_data='<p><b>Bold</b></p>\n\n\n\nMore'
     )
@@ -389,7 +358,6 @@ class TestEdgeCases:
     """CDATA sections are handled."""
     html = '<![CDATA[some data]]>'
     result = strip_tags(html)
-    # BeautifulSoup may handle this differently
     assert 'CDATA' not in result or 'some data' in result
 
   def test_processing_instruction(self):
@@ -414,10 +382,8 @@ class TestEdgeCases:
 
   def test_numeric_entities_converted(self):
     """Numeric HTML entities are converted to named entities."""
-    # html.parser converts numeric to named entities for safety
-    html = '<p>&#60;&#62;</p>'  # < and >
+    html = '<p>&#60;&#62;</p>'
     result = strip_tags(html)
-    # May be raw chars or escaped entities
     assert '<' in result or '&lt;' in result
     assert '>' in result or '&gt;' in result
 
@@ -425,7 +391,6 @@ class TestEdgeCases:
     """Named HTML entities decoded."""
     html = '&nbsp;&copy;&reg;'
     result = strip_tags(html)
-    # Non-breaking space, copyright, registered
     assert len(result) >= 3
 
   def test_broken_entities(self):
