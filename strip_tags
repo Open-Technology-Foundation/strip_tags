@@ -1,25 +1,27 @@
 #!/usr/bin/env bash
+# Python venv wrapper - activates/creates venv and executes matching .py script
 set -euo pipefail
 
 # Resolve script location
-SCRIPT_PATH=$(realpath -- "$0")
-SCRIPT_DIR=$(dirname -- "$SCRIPT_PATH")
-SCRIPT_NAME=$(basename -- "$SCRIPT_PATH")
+declare -r SCRIPT_PATH=$(realpath -- "$0")
+declare -r SCRIPT_DIR=$(dirname -- "$SCRIPT_PATH")
+declare -r SCRIPT_NAME=$(basename -- "$SCRIPT_PATH")
+
+declare -r VENV_DIR="$SCRIPT_DIR"/.venv
+declare -r PY_SCRIPT="$SCRIPT_DIR"/"$SCRIPT_NAME".py
 
 # Create venv if missing
-if [[ ! -d "$SCRIPT_DIR"/.venv ]]; then
-  >&2 echo 'Setting up virtual environment...'
-  ( cd "$SCRIPT_DIR"
-    python3 -m venv "$SCRIPT_DIR"/.venv
-    # shellcheck source=/dev/null
-    source "$SCRIPT_DIR"/.venv/bin/activate
-    pip install -q -r "$SCRIPT_DIR"/requirements.txt
-  )
-else
+if [[ -d "$VENV_DIR" ]]; then
   # shellcheck source=/dev/null
-  source "$SCRIPT_DIR"/.venv/bin/activate
+  source "$VENV_DIR"/bin/activate
+else
+  >&2 echo "Setting up virtual environment in ${VENV_DIR@Q}..."
+  python3 -m venv "$VENV_DIR"
+  # shellcheck source=/dev/null
+  source "$VENV_DIR"/bin/activate
+  pip install -q -r "$SCRIPT_DIR"/requirements.txt
 fi
 
 # Execute Python script
-exec "$SCRIPT_DIR"/"$SCRIPT_NAME".py "$@"
+exec "$PY_SCRIPT" "$@"
 #fin

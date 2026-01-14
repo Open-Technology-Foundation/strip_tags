@@ -113,8 +113,9 @@ strip_tags() {
 
 squeeze_text() {
   local -- text=$1
-  # Collapse 3+ consecutive newlines to 2, then strip leading/trailing whitespace
+  # Strip per-line trailing whitespace, collapse 3+ blank lines to 2, trim
   printf '%s' "$text" |
+    sed 's/[[:space:]]*$//' |
     sed -e ':a' -e 'N' -e '$!ba' -e 's/\n\{3,\}/\n\n/g' |
     sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
