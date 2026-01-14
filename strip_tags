@@ -1,22 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # Resolve script location
-prg0=$(readlink -fn -- "$0")
-prgdir=$(dirname "$prg0")
-prg=$(basename "$prg0")
+SCRIPT_PATH=$(realpath -- "$0")
+SCRIPT_DIR=$(dirname -- "$SCRIPT_PATH")
+SCRIPT_NAME=$(basename -- "$SCRIPT_PATH")
 
 # Create venv if missing
-if [[ ! -d "$prgdir/.venv" ]]; then
-  echo "Setting up virtual environment..." >&2
-  python3 -m venv "$prgdir/.venv"
-  # shellcheck source=/dev/null
-  source "$prgdir/.venv/bin/activate"
-  pip install -q -r "$prgdir/requirements.txt"
+if [[ ! -d "$SCRIPT_DIR"/.venv ]]; then
+  >&2 echo 'Setting up virtual environment...'
+  ( cd "$SCRIPT_DIR"
+    python3 -m venv "$SCRIPT_DIR"/.venv
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR"/.venv/bin/activate
+    pip install -q -r "$SCRIPT_DIR"/requirements.txt
+  )
 else
   # shellcheck source=/dev/null
-  source "$prgdir/.venv/bin/activate"
+  source "$SCRIPT_DIR"/.venv/bin/activate
 fi
 
 # Execute Python script
-exec "$prgdir/$prg.py" "$@"
+exec "$SCRIPT_DIR"/"$SCRIPT_NAME".py "$@"
+#fin
