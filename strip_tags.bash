@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# html.strip-tags - Strip HTML tags from files or stdin (pure Bash)
+# strip_tags.bash - Strip HTML tags from files or stdin (pure Bash)
 # A pure Bash alternative to the Python strip_tags utility.
 # Use when Python is not available on target systems.
 set -euo pipefail

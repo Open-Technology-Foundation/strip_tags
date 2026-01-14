@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Comprehensive test suite for Bash html.strip-tags utility."""
+"""Comprehensive test suite for Bash strip_tags.bash utility."""
 import os
 import stat
 

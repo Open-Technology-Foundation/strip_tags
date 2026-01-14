@@ -20,8 +20,8 @@ def python_script(script_dir):
 
 @pytest.fixture
 def bash_script(script_dir):
-  """Return path to the Bash html.strip-tags script."""
-  return script_dir / 'html.strip-tags'
+  """Return path to the Bash strip_tags.bash script."""
+  return script_dir / 'strip_tags.bash'
 
 
 @pytest.fixture

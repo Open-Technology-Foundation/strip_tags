@@ -22,7 +22,7 @@ class Result(NamedTuple):
 
 SCRIPT_DIR = Path(__file__).parent.parent
 PYTHON_SCRIPT = SCRIPT_DIR / 'strip_tags.py'
-BASH_SCRIPT = SCRIPT_DIR / 'html.strip-tags'
+BASH_SCRIPT = SCRIPT_DIR / 'strip_tags.bash'
 REAL_HTML_PATH = Path('/tmp/test_page.html')
 
 # Number of iterations for timing
@@ -94,7 +94,7 @@ def run_python(html: str, args: list[str]) -> Result:
 
 
 def run_bash(html: str, args: list[str]) -> Result:
-  """Run Bash html.strip-tags and measure time."""
+  """Run Bash strip_tags.bash and measure time."""
   cmd = [str(BASH_SCRIPT)] + args
 
   start = time.perf_counter()

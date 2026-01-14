@@ -1,47 +1,64 @@
 # strip_tags
 
-A simple, powerful utility to strip HTML tags from files or standard input.
+Strip HTML tags from files or stdin while preserving text content.
 
-Available in two versions:
-- **`strip_tags`** - Python version (robust, handles edge cases)
-- **`html.strip-tags`** - Pure Bash version (no dependencies, portable)
+Available in two versions with identical CLI interfaces:
+- **`strip_tags`** - Python + BeautifulSoup (robust, handles edge cases)
+- **`strip_tags.bash`** - Pure Bash + sed (fast, portable, no dependencies)
+
+## Quick Start
+
+```bash
+# Strip all HTML tags
+echo "<p>Hello <b>world</b></p>" | strip_tags
+# Output: Hello world
+
+# Preserve specific tags
+echo "<p>Hello <b>world</b></p>" | strip_tags -a b
+# Output: Hello <b>world</b>
+
+# Process a file
+strip_tags index.html > clean.txt
+
+# Pipe from curl
+curl -s https://example.com | strip_tags -a h1,p
+```
 
 ## Features
 
 - Remove HTML tags while preserving text content
-- Selectively allow specific tags with `--allow` option
-- Intelligent whitespace handling with automatic "squeezing" of empty lines
-- Process files or piped input from stdin
-- Bash tab completion for options and HTML tags
+- Selectively preserve tags with `-a/--allow`
+- Automatic whitespace normalization (collapse multiple blank lines)
+- Process files or piped stdin
+- Bash tab completion for options and common HTML tags
+- Full Unicode support
 
 ## Installation
-
-Clone this repository:
 
 ```bash
 git clone https://github.com/Open-Technology-Foundation/strip_tags.git
 cd strip_tags
 ```
 
-### Python Version (strip_tags)
+### Python Version
 
-Requires Python 3.10+. The wrapper script automatically creates a virtual environment and installs dependencies on first run.
+Requires Python 3.10+ and BeautifulSoup4. The wrapper script auto-creates a venv on first run.
 
 ```bash
 sudo ln -s "$(pwd)/strip_tags" /usr/local/bin/
 ```
 
-### Bash Version (html.strip-tags)
+### Bash Version
 
-Pure Bash 5.2+, no dependencies. Use on systems without Python.
+Requires Bash 5.2+ and GNU sed. No other dependencies.
 
 ```bash
-sudo ln -s "$(pwd)/html.strip-tags" /usr/local/bin/
+sudo ln -s "$(pwd)/strip_tags.bash" /usr/local/bin/
 ```
 
-### Bash Completion
+### Tab Completion
 
-To enable tab completion, add to your `~/.bashrc`:
+Add to `~/.bashrc`:
 
 ```bash
 source /path/to/strip_tags/.bash_completion
@@ -49,12 +66,8 @@ source /path/to/strip_tags/.bash_completion
 
 ## Usage
 
-Both versions share the same interface:
-
 ```
-Usage: strip_tags [OPTIONS] [FILE]
-
-Strip HTML tags from a file or stdin.
+strip_tags [OPTIONS] [FILE]
 
 Options:
   -a, --allow TAGS   Comma-separated list of tags to preserve
@@ -65,70 +78,130 @@ Options:
 
 ## Examples
 
-### Basic usage (strip all tags)
+### Basic Tag Stripping
 
 ```bash
-echo "<p>Hello <b>world</b></p>" | strip_tags
-# Output: Hello world
+# From stdin
+echo "<div><p>Text</p></div>" | strip_tags
+
+# From file
+strip_tags document.html
+
+# Save output
+strip_tags document.html > clean.txt
 ```
 
-### Preserve specific tags
+### Preserve Specific Tags
 
 ```bash
-echo "<p>Hello <b>world</b></p>" | strip_tags -a b
-# Output: Hello <b>world</b>
+# Keep bold tags
+strip_tags -a b < input.html
+
+# Keep multiple tags (comma-separated)
+strip_tags --allow "a,p,h1,h2,h3" page.html
+
+# Spaces allowed around commas
+strip_tags -a "p, div, span" page.html
+
+# Namespaced tags (SVG, etc.)
+strip_tags -a "svg:rect,svg:circle" drawing.svg
 ```
 
-### Process a file
+### Pipeline Usage
 
 ```bash
-strip_tags myfile.html > cleaned.txt
+# Fetch and clean a webpage
+curl -s https://example.com | strip_tags -a p,h1
+
+# Extract text from HTML email
+cat email.html | strip_tags | less
+
+# Clean multiple files
+for f in *.html; do strip_tags "$f" > "${f%.html}.txt"; done
 ```
 
-### Preserve multiple tags (spaces allowed)
+### Whitespace Control
 
 ```bash
-strip_tags myfile.html --allow "a, p, div" > cleaned.txt
+# Default: collapse 3+ blank lines to 2
+strip_tags document.html
+
+# Preserve all whitespace
+strip_tags --no-squeeze document.html
 ```
 
-### Process piped input
+## Performance
 
-```bash
-curl -s https://example.com | strip_tags --allow h1,h2,p
-```
+Tested on 33KB real-world HTML (averaged over 5 runs):
 
-### Disable whitespace squeezing
+| Scenario | Python | Bash | Speedup |
+|----------|--------|------|---------|
+| Simple tags | 57 ms | 10 ms | **5.5x** |
+| With `--allow` | 58 ms | 13 ms | **4.5x** |
+| 33KB HTML | 68 ms | 18 ms | **3.8x** |
+| 33KB + allow | 66 ms | 59 ms | **1.1x** |
 
-```bash
-strip_tags myfile.html --no-squeeze
-```
+Bash is **4-5x faster** for typical use cases due to lower startup overhead.
 
-## Which Version to Use?
+## Accuracy
 
-| Feature | Python (`strip_tags`) | Bash (`html.strip-tags`) |
-|---------|----------------------|--------------------------|
-| Dependencies | Python 3.10+, BeautifulSoup4 | Bash 5.2+, GNU sed |
-| Script/style removal | Full block removal | Full block removal |
-| Multi-line tags | Handled | Handled |
-| Namespaced tags | Supported | Supported (v1.1.0+) |
-| `>` in attributes | Handled | Not supported |
-| Malformed HTML | Robust | Basic |
-| Performance | ~200ms startup | ~10ms startup |
-| Portability | Needs Python | Any Linux/Unix |
+| Feature | Python | Bash | Notes |
+|---------|--------|------|-------|
+| Basic HTML | 100% | 100% | Identical output |
+| Nested tags | 100% | 100% | Both handle correctly |
+| Multi-line tags | Yes | Yes | Tags spanning lines |
+| Self-closing | Yes | Yes | `<br/>`, `<hr/>` |
+| Namespaced tags | Yes | Yes | `svg:rect`, `xlink:href` |
+| Script blocks | Preserves content | **Removes entirely** | Different by design |
+| Style blocks | Preserves content | **Removes entirely** | Different by design |
+| HTML comments | Preserves | **Removes** | |
+| DOCTYPE | Preserves | **Removes** | |
+| `>` in attributes | Handles | Breaks | Known Bash limitation |
+| Malformed HTML | Robust recovery | Best-effort | Python more forgiving |
+| HTML entities | Decodes some | Preserves as-is | |
 
-**Use Python version** for production HTML processing, especially with complex or malformed HTML.
+## When to Use Which
 
-**Use Bash version** on minimal systems, containers, or when Python is unavailable. Handles most common HTML correctly.
+### Use Python (`strip_tags`) when:
+
+- Processing malformed or complex HTML
+- You need script/style content preserved (not removed)
+- Accuracy is more important than speed
+- HTML contains `>` inside attribute values
+
+### Use Bash (`strip_tags.bash`) when:
+
+- Speed is priority (4-5x faster)
+- You want script/style blocks fully removed
+- Running on minimal systems without Python
+- Processing clean, well-formed HTML
+- In containers or constrained environments
 
 ## Testing
 
-Run the Python test suite:
+Run the full test suite (111 tests):
 
 ```bash
 source .venv/bin/activate
-pytest test_strip_tags.py -v
+pytest tests/ -v
+```
+
+Run specific test modules:
+
+```bash
+# Python tests only (65 tests)
+pytest tests/test_python_strip_tags.py -v
+
+# Bash tests only (46 tests)
+pytest tests/test_bash_strip_tags.py -v
+```
+
+Run performance comparison:
+
+```bash
+python tests/performance_matrix.py
 ```
 
 ## License
 
-GPL-3
+GPL-3.0
