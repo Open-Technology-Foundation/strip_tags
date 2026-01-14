@@ -42,23 +42,58 @@ cd strip_tags
 
 ### Requirements
 
-- **Python version**: Python 3.10+ and BeautifulSoup4 (wrapper auto-creates venv on first run)
+- **Python version**: Python 3.10+ and BeautifulSoup4
 - **Bash version**: Bash 5.2+ and GNU sed (no other dependencies)
 
-### Install Symlinks
+### User Install (Recommended)
+
+Installs to `~/.local/`:
 
 ```bash
-xargs -I{} sudo ln -sf "$PWD/{}" /usr/local/bin/{} < .symlink
+make install
+make install-venv    # Optional: pre-build Python venv
 ```
 
-This creates symlinks for `strip_tags`, `strip_tags.bash`, and `strip-tags`.
+### System Install
+
+Installs to `/usr/local/`:
+
+```bash
+sudo make install PREFIX=/usr/local
+sudo make install-venv PREFIX=/usr/local
+```
+
+### Development (Symlink Only)
+
+For development, create symlinks without copying files:
+
+```bash
+make link
+# Or for system-wide: sudo make link BINDIR=/usr/local/bin
+```
+
+### Update
+
+Pull latest changes and refresh symlinks:
+
+```bash
+make update
+```
+
+### Uninstall
+
+```bash
+make uninstall
+# Or: sudo make uninstall PREFIX=/usr/local
+```
 
 ### Tab Completion
 
 Add to `~/.bashrc`:
 
 ```bash
-source /path/to/strip_tags/.bash_completion
+source ~/.local/share/yatti/strip_tags/.bash_completion
+# Or for system install: source /usr/local/share/yatti/strip_tags/.bash_completion
 ```
 
 ## Usage
