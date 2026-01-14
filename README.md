@@ -107,15 +107,18 @@ strip_tags myfile.html --no-squeeze
 
 | Feature | Python (`strip_tags`) | Bash (`html.strip-tags`) |
 |---------|----------------------|--------------------------|
-| Dependencies | Python 3.10+, BeautifulSoup4 | Bash 5.2+ only |
-| Malformed HTML | Robust handling | Basic handling |
+| Dependencies | Python 3.10+, BeautifulSoup4 | Bash 5.2+, GNU sed |
+| Script/style removal | Full block removal | Full block removal |
+| Multi-line tags | Handled | Handled |
+| Namespaced tags | Supported | Supported (v1.1.0+) |
+| `>` in attributes | Handled | Not supported |
+| Malformed HTML | Robust | Basic |
 | Performance | ~200ms startup | ~10ms startup |
-| Edge cases | Comprehensive | 95% coverage |
 | Portability | Needs Python | Any Linux/Unix |
 
-**Use Python version** for production HTML processing where accuracy matters.
+**Use Python version** for production HTML processing, especially with complex or malformed HTML.
 
-**Use Bash version** on minimal systems, containers, or when Python is unavailable.
+**Use Bash version** on minimal systems, containers, or when Python is unavailable. Handles most common HTML correctly.
 
 ## Testing
 
