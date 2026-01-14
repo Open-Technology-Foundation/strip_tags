@@ -1,6 +1,8 @@
 # Project-specific files
+BCS
 BASH-CODING-STANDARD.md
 CLAUDE.md
+.claude/
 
 # Python
 __pycache__/

@@ -54,7 +54,7 @@ parse_allowed_tags() {
 
 read_input() {
   if [[ -n $INPUT_FILE ]]; then
-    [[ -f $INPUT_FILE ]] || die 1 "File ${INPUT_FILE@Q} not found"
+    [[ -f $INPUT_FILE ]] || die 2 "File ${INPUT_FILE@Q} not found"
     [[ -r $INPUT_FILE ]] || die 1 "Cannot read ${INPUT_FILE@Q}"
     cat -- "$INPUT_FILE"
   else
@@ -170,6 +170,7 @@ parse_args() {
     esac
     shift
   done
+  readonly -- ALLOWED_TAGS SQUEEZE INPUT_FILE
 }
 
 #-----------------------------------------------------------
