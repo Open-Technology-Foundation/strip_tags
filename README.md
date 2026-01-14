@@ -40,21 +40,18 @@ git clone https://github.com/Open-Technology-Foundation/strip_tags.git
 cd strip_tags
 ```
 
-### Python Version
+### Requirements
 
-Requires Python 3.10+ and BeautifulSoup4. The wrapper script auto-creates a venv on first run.
+- **Python version**: Python 3.10+ and BeautifulSoup4 (wrapper auto-creates venv on first run)
+- **Bash version**: Bash 5.2+ and GNU sed (no other dependencies)
 
-```bash
-sudo ln -s "$(pwd)/strip_tags" /usr/local/bin/
-```
-
-### Bash Version
-
-Requires Bash 5.2+ and GNU sed. No other dependencies.
+### Install Symlinks
 
 ```bash
-sudo ln -s "$(pwd)/strip_tags.bash" /usr/local/bin/
+xargs -I{} sudo ln -sf "$PWD/{}" /usr/local/bin/{} < .symlink
 ```
+
+This creates symlinks for `strip_tags`, `strip_tags.bash`, and `strip-tags`.
 
 ### Tab Completion
 
